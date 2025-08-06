@@ -12,6 +12,7 @@ DIRECAO = {
     "direita": [1, 0]
 }
 VERMELHO = '\033[31m'
+VERDE = '\033[32m'
 AMARELO = '\033[33m'
 CIANO = '\033[36m'
 RESET = '\033[0m'
@@ -24,10 +25,10 @@ PROJETIL = {
 PERSONAGEM = f"{CIANO}☻{RESET}"
 Pontuacao = 0
 debug = ""
-def inserirNaTela(caracter, coordenada):
+def inserirNaTela(caractere, coordenada):
     x, y = coordenada
     tela[y].pop(x)
-    tela[y].insert(x, caracter)
+    tela[y].insert(x, caractere)
 def removerDaTela(coordenada):
     x, y = coordenada
     tela[y].pop(x)
@@ -35,6 +36,10 @@ def removerDaTela(coordenada):
 def procurarNaTela(coordenada):
     x, y = coordenada
     return tela[y][x]
+def limparTela():
+    for i in range(LINHA):
+        for j in range(COLUNA):
+            removerDaTela([j, i])
 def formatarTela():
     fTela = ""
     for i in range(LINHA):
@@ -68,7 +73,7 @@ def mover(posicao, vetor):
     return  Nposicao
 def geraInimigos(minimo, maximo):
     numInimigos = random.randint(minimo, maximo)
-    for i in range(1, numInimigos + 1):
+    for i in range(numInimigos):
         cbed = random.randint(1, 4)
         if cbed == 1:
             posInimigo = [random.randrange(0, COLUNA), 0]
@@ -90,7 +95,7 @@ def moverProjetil(posicaoProj, vetor, projetil):
         return
     if VERMELHO in tela[y][x]:
         removerDaTela(posicaoProj)
-        digito = int(procurarNaTela(NposicaoProj)[5]) #consertar
+        digito = int(procurarNaTela(NposicaoProj)[5])
         global Pontuacao
         if digito == 1:
             removerDaTela(NposicaoProj)
@@ -131,10 +136,10 @@ def numberShooter():
     minInimig = 2
     maxInimig = 5
     Perdeu = True
+    vida = 2
     global tela
     global Pontuacao
     global debug
-    geraInimigos(minInimig, maxInimig)
     while True:
         Perdeu = True
         if msvcrt.kbhit():
@@ -169,32 +174,47 @@ def numberShooter():
             contador1 = 0          
         for i in range(LINHA):
             for j in range(COLUNA):
-                if tela[i][j] == PERSONAGEM:
+                caractere = tela[i][j] 
+                if  caractere == PERSONAGEM:
                     Perdeu = False
-                if tela[i][j] == PROJETIL["↑"]:
+                if caractere == PROJETIL["↑"]:
                     moverProjetil([j, i], DIRECAO["cima"], PROJETIL["↑"])
-                elif tela[i][j] == PROJETIL["←"]:
+                elif caractere == PROJETIL["←"]:
                     moverProjetil([j, i], DIRECAO["esquerda"], PROJETIL["←"])
-                if (contador2 % tempMovInimigo == 0) and (VERMELHO in tela[i][j]):
+                if (contador2 % tempMovInimigo == 0) and (VERMELHO in caractere):
                     mov = melhorMov(posicao, [j, i])
                     if (mov == DIRECAO["cima"]) or (mov == DIRECAO["esquerda"]):
-                        moverInimigo(mov, [j, i], tela[i][j])
+                        moverInimigo(mov, [j, i], caractere)
                         contador2 = 0
         for i in reversed(range(LINHA)):
             for j in reversed(range(COLUNA)):
-                if tela[i][j] == PROJETIL["↓"]:
+                caractere = tela[i][j]
+                if caractere == PROJETIL["↓"]:
                     moverProjetil([j, i], DIRECAO["baixo"], PROJETIL["↓"])
-                elif tela[i][j] == PROJETIL["→"]:
+                elif caractere == PROJETIL["→"]:
                     moverProjetil([j, i], DIRECAO["direita"], PROJETIL["→"])
-                if (contador2 % tempMovInimigo == 0) and (VERMELHO in tela[i][j]):
+                if (contador2 % tempMovInimigo == 0) and (VERMELHO in caractere):
                     mov = melhorMov(posicao, [j, i])
                     if (mov == DIRECAO["baixo"]) or (mov == DIRECAO["direita"]):
-                        moverInimigo(mov, [j, i], tela[i][j])
+                        moverInimigo(mov, [j, i], caractere)
                         contador2 = 0
         if Perdeu:
-            atualizarTela()
-            break
-        debug = f"{CIANO}\nUse WASD para se mover\nUse as setas (←↑↓→) para atirar\nOnda atual: {onda}\nProxima onda: {tempOnda}/{contador1}\nPontuação: {Pontuacao}{RESET}"
+            if vida == 0:
+                atualizarTela()
+                break
+            else:
+                vida -= 1
+                limparTela()
+                posicao = [meio, meio]
+                inserirNaTela(PERSONAGEM, posicao)
+                i = 0
+                while i != 3:
+                    os.system('cls')
+                    time.sleep(0.15)
+                    atualizarTela()
+                    time.sleep(0.15)
+                    i += 1
+        debug = f"{CIANO}\nUse WASD para se mover\nUse as setas (←↑↓→) para atirar\nOnda atual: {onda}\nProxima onda: {tempOnda}/{contador1}\nPontuação: {Pontuacao}\nVidas extras: {RESET}{VERDE}{('❤ ' * vida)}{RESET}"
         contador1 += 1
         contador2 += 1
         atualizarTela()
@@ -204,6 +224,6 @@ def numberShooter():
     inpt = input("Digite r para recomeçar: ")
     if inpt.lower() == 'r':
         Pontuacao = 0
-        tela = [['▫' for i in range(COLUNA)] for i in range(LINHA)]
+        limparTela()
         numberShooter()
 numberShooter()
