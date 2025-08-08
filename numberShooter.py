@@ -5,25 +5,34 @@ import random
 LINHA = 17
 COLUNA = 17
 tela = [['▫' for i in range(COLUNA)] for i in range(LINHA)]
+VERMELHO = '\033[31m'
+VERDE = '\033[32m'
+AMARELO = '\033[33m'
+AZUL = '\033[34m'
+ROXO = '\033[35m'
+CIANO = '\033[36m'
+RESET = '\033[0m'
 DIRECAO = {
     "cima": [0, -1],
     "esquerda": [-1, 0],
     "baixo": [0, 1],
     "direita": [1, 0]
 }
-VERMELHO = '\033[31m'
-VERDE = '\033[32m'
-AMARELO = '\033[33m'
-CIANO = '\033[36m'
-RESET = '\033[0m'
 PROJETIL = {
-    "↑":f"{AMARELO}↑{RESET}",
-    "←":f"{AMARELO}←{RESET}",
-    "↓":f"{AMARELO}↓{RESET}",
-    "→":f"{AMARELO}→{RESET}"
+    "cima":f"{AMARELO}↑{RESET}",
+    "esquerda":f"{AMARELO}←{RESET}",
+    "baixo":f"{AMARELO}↓{RESET}",
+    "direita":f"{AMARELO}→{RESET}",
+    "rcima":f"{ROXO}↑{RESET}",
+    "resquerda":f"{ROXO}←{RESET}",
+    "rbaixo":f"{ROXO}↓{RESET}",
+    "rdireita":f"{ROXO}→{RESET}"
 }
 PERSONAGEM = f"{CIANO}☻{RESET}"
 Pontuacao = 0
+vida = 2
+buffDano = False
+buffCongelamento = False
 debug = ""
 def inserirNaTela(caractere, coordenada):
     x, y = coordenada
@@ -34,6 +43,8 @@ def removerDaTela(coordenada):
     tela[y].pop(x)
     tela[y].insert(x, '▫')
 def procurarNaTela(coordenada):
+    if foraDoLimite(coordenada):
+        return ""
     x, y = coordenada
     return tela[y][x]
 def limparTela():
@@ -60,17 +71,9 @@ def somaCoord(coordenadas1, coordenadas2):
     x = coordenadas1[0] + coordenadas2[0]
     y = coordenadas1[1] + coordenadas2[1]
     return [x, y]
-def mover(posicao, vetor):
-    Nposicao = somaCoord(posicao, vetor)
-    x, y = Nposicao
-    if (x > (COLUNA - 1)) or (y > (LINHA - 1)): return posicao
-    if (x < 0) or (y < 0): return posicao
-    if VERMELHO in tela[y][x]:
-        removerDaTela(posicao)
-        return [0, 0]       
-    removerDaTela(posicao)
-    inserirNaTela(PERSONAGEM, Nposicao)
-    return  Nposicao
+def foraDoLimite(coordenada):
+    x, y = coordenada
+    return ((x > (COLUNA - 1)) or (y > (LINHA - 1)) or (x < 0) or (y < 0))
 def geraInimigos(minimo, maximo):
     numInimigos = random.randint(minimo, maximo)
     for i in range(numInimigos):
@@ -84,21 +87,65 @@ def geraInimigos(minimo, maximo):
         elif cbed == 4:
             posInimigo = [COLUNA-1, random.randrange(0, LINHA)]
         inserirNaTela(f'{VERMELHO}{random.randint(1, 9)}{RESET}', posInimigo)
-def moverProjetil(posicaoProj, vetor, projetil):
-    NposicaoProj = somaCoord(posicaoProj, vetor)
-    x, y = NposicaoProj
-    if (x > (COLUNA - 1)) or (y > (LINHA - 1)): 
+def geraBuff(coordenada):
+    if random.random() > 0.1: return
+    escolha = random.randint(1, 3)
+    buff = '▫'
+    if escolha == 1:
+        buff = f'{VERDE}♥{RESET}'
+    elif escolha == 2:
+        buff = f'{ROXO}⚔{RESET}'
+    elif escolha == 3:
+        buff = f'{AZUL}❄{RESET}'
+    inserirNaTela(buff, coordenada)
+def escolherProjetil(direcao):
+    if buffDano:
+        return PROJETIL["r" + direcao]
+    return PROJETIL[direcao]
+def mover(posicao, vetor):
+    Nposicao = somaCoord(posicao, vetor)
+    proximoCaractere = procurarNaTela(Nposicao)
+    
+    if proximoCaractere == "": 
+        return posicao
+    if VERMELHO in proximoCaractere:
+        removerDaTela(posicao)
+        return [0, 0]
+    if VERDE in proximoCaractere:
+        global vida
+        vida +=1
+    elif ROXO in proximoCaractere:
+        global buffDano
+        buffDano = True
+    elif AZUL in proximoCaractere:
+        global buffCongelamento
+        buffCongelamento = True
+    removerDaTela(posicao)
+    inserirNaTela(PERSONAGEM, Nposicao)
+    return  Nposicao
+def moverProjetil(posicaoProj, direcao):
+    projetil = escolherProjetil(direcao)
+    NposicaoProj = somaCoord(posicaoProj, DIRECAO[direcao])
+    proximoCaractere = procurarNaTela(NposicaoProj)
+    
+    while (VERDE in proximoCaractere) or (ROXO in proximoCaractere) or (AZUL in proximoCaractere):
+        NposicaoProj = somaCoord(NposicaoProj, DIRECAO[direcao])
+        proximoCaractere = procurarNaTela(NposicaoProj)
+    if proximoCaractere == "": 
         removerDaTela(posicaoProj)
         return
-    if (x < 0) or (y < 0): 
-        removerDaTela(posicaoProj)
-        return
-    if VERMELHO in tela[y][x]:
+    if VERMELHO in proximoCaractere:
         removerDaTela(posicaoProj)
         digito = int(procurarNaTela(NposicaoProj)[5])
         global Pontuacao
-        if digito == 1:
+        if buffDano:
             removerDaTela(NposicaoProj)
+            geraBuff(NposicaoProj)
+            Pontuacao += 500 
+            return
+        elif digito == 1:
+            removerDaTela(NposicaoProj)
+            geraBuff(NposicaoProj)
             Pontuacao += 500 
         else:
             digito = digito - 1
@@ -120,26 +167,33 @@ def melhorMov(coordenada1, coordenada2):
         return DIRECAO["direita"]
     return [0, 0]
 def moverInimigo(mov, posInimigo, inimigo):
+    if buffCongelamento:
+        return
     NposInimigo = somaCoord(posInimigo, mov)
     removerDaTela(posInimigo)
     inserirNaTela(inimigo, NposInimigo)
     return False
-def numberShooter(): 
+def numberShooter():
+    global vida
+    global buffDano
+    global buffCongelamento
+    global tela
+    global Pontuacao
+    global debug 
     meio = int((LINHA - 1)/2)
     posicao = [meio, meio]
     inserirNaTela(PERSONAGEM, posicao)
     contador1 = 0
     contador2 = 0
+    contadorBuff1 = 0
+    contadorBuff2 = 0
     onda = 0
     tempOnda = 170
     tempMovInimigo = 10
+    temp = 0
     minInimig = 2
     maxInimig = 5
     Perdeu = True
-    vida = 2
-    global tela
-    global Pontuacao
-    global debug
     while True:
         Perdeu = True
         if msvcrt.kbhit():
@@ -155,17 +209,17 @@ def numberShooter():
             elif tecla == b'\xe0':
                 tecla2 = msvcrt.getch()
                 if tecla2 == b'H':
-                    moverProjetil(posicao, DIRECAO["cima"], PROJETIL["↑"])
+                    moverProjetil(posicao, "cima")
                 elif tecla2 == b'K':
-                    moverProjetil(posicao, DIRECAO["esquerda"], PROJETIL["←"])
+                    moverProjetil(posicao, "esquerda")
                 elif tecla2 == b'P':
-                    moverProjetil(posicao, DIRECAO["baixo"], PROJETIL["↓"])
+                    moverProjetil(posicao, "baixo")
                 elif tecla2 == b'M':
-                    moverProjetil(posicao, DIRECAO["direita"], PROJETIL["→"])
+                    moverProjetil(posicao, "direita")
         if contador1 % tempOnda == 0:
             onda += 1
             if (onda % 10) == 0:
-                maxInimig +=2
+                maxInimig += 2
                 tempOnda -= int(0.15*tempOnda)
             if (onda % 5) == 0:
                 tempMovInimigo -= int(0.2*tempMovInimigo)
@@ -175,28 +229,30 @@ def numberShooter():
         for i in range(LINHA):
             for j in range(COLUNA):
                 caractere = tela[i][j] 
+                coordenadaAtual = [j, i]
                 if  caractere == PERSONAGEM:
                     Perdeu = False
-                if caractere == PROJETIL["↑"]:
-                    moverProjetil([j, i], DIRECAO["cima"], PROJETIL["↑"])
-                elif caractere == PROJETIL["←"]:
-                    moverProjetil([j, i], DIRECAO["esquerda"], PROJETIL["←"])
+                if (caractere == PROJETIL["cima"]) or (caractere == PROJETIL ["rcima"]):
+                    moverProjetil(coordenadaAtual, "cima")
+                elif (caractere == PROJETIL["esquerda"]) or (caractere == PROJETIL ["resquerda"]):
+                    moverProjetil(coordenadaAtual, "esquerda")
                 if (contador2 % tempMovInimigo == 0) and (VERMELHO in caractere):
-                    mov = melhorMov(posicao, [j, i])
+                    mov = melhorMov(posicao, coordenadaAtual)
                     if (mov == DIRECAO["cima"]) or (mov == DIRECAO["esquerda"]):
-                        moverInimigo(mov, [j, i], caractere)
+                        moverInimigo(mov, coordenadaAtual, caractere)
                         contador2 = 0
         for i in reversed(range(LINHA)):
             for j in reversed(range(COLUNA)):
                 caractere = tela[i][j]
-                if caractere == PROJETIL["↓"]:
-                    moverProjetil([j, i], DIRECAO["baixo"], PROJETIL["↓"])
-                elif caractere == PROJETIL["→"]:
-                    moverProjetil([j, i], DIRECAO["direita"], PROJETIL["→"])
+                coordenadaAtual = [j, i]
+                if (caractere == PROJETIL["baixo"]) or (caractere == PROJETIL ["rbaixo"]):
+                    moverProjetil(coordenadaAtual, "baixo")
+                elif (caractere == PROJETIL["direita"]) or (caractere == PROJETIL ["rdireita"]):
+                    moverProjetil(coordenadaAtual, "direita")
                 if (contador2 % tempMovInimigo == 0) and (VERMELHO in caractere):
-                    mov = melhorMov(posicao, [j, i])
+                    mov = melhorMov(posicao, coordenadaAtual)
                     if (mov == DIRECAO["baixo"]) or (mov == DIRECAO["direita"]):
-                        moverInimigo(mov, [j, i], caractere)
+                        moverInimigo(mov, coordenadaAtual, caractere)
                         contador2 = 0
         if Perdeu:
             if vida == 0:
@@ -214,6 +270,16 @@ def numberShooter():
                     atualizarTela()
                     time.sleep(0.15)
                     i += 1
+        if buffDano:
+            contadorBuff1 +=1
+        if (contadorBuff1 % 100) == 0:
+            buffDano = False
+            contadorBuff1 = 0
+        if buffCongelamento:
+            contadorBuff2 +=1
+        if (contadorBuff2 % 75) == 0:
+            buffCongelamento = False
+            contadorBuff2 = 0
         debug = f"{CIANO}\nUse WASD para se mover\nUse as setas (←↑↓→) para atirar\nOnda atual: {onda}\nProxima onda: {tempOnda}/{contador1}\nPontuação: {Pontuacao}\nVidas extras: {RESET}{VERDE}{('❤ ' * vida)}{RESET}"
         contador1 += 1
         contador2 += 1
@@ -223,6 +289,9 @@ def numberShooter():
     time.sleep(1)
     inpt = input("Digite r para recomeçar: ")
     if inpt.lower() == 'r':
+        vida = 2
+        buffDano = False
+        buffCongelamento = False
         Pontuacao = 0
         limparTela()
         numberShooter()
