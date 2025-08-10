@@ -102,8 +102,8 @@ def escolherProjetil(direcao):
     if buffDano:
         return PROJETIL["r" + direcao]
     return PROJETIL[direcao]
-def mover(posicao, vetor):
-    Nposicao = somaCoord(posicao, vetor)
+def mover(posicao, direcao):
+    Nposicao = somaCoord(posicao, DIRECAO[direcao])
     proximoCaractere = procurarNaTela(Nposicao)
     
     if proximoCaractere == "": 
@@ -191,21 +191,21 @@ def numberShooter():
     tempOnda = 170
     tempMovInimigo = 10
     temp = 0
-    minInimig = 2
-    maxInimig = 5
+    minInimig = 1
+    maxInimig = 3
     Perdeu = True
     while True:
         Perdeu = True
         if msvcrt.kbhit():
             tecla = msvcrt.getch()
             if tecla == b'w': 
-                posicao = mover(posicao, DIRECAO["cima"])
+                posicao = mover(posicao, "cima")
             elif tecla== b'a': 
-                posicao = mover(posicao, DIRECAO["esquerda"])
+                posicao = mover(posicao, "esquerda")
             elif tecla == b's': 
-                posicao = mover(posicao, DIRECAO["baixo"])
+                posicao = mover(posicao, "baixo")
             elif tecla == b'd': 
-                posicao = mover(posicao, DIRECAO["direita"])
+                posicao = mover(posicao, "direita")
             elif tecla == b'\xe0':
                 tecla2 = msvcrt.getch()
                 if tecla2 == b'H':
@@ -220,9 +220,9 @@ def numberShooter():
             onda += 1
             if (onda % 10) == 0:
                 maxInimig += 2
-                tempOnda -= int(0.15*tempOnda)
+                tempOnda -= int(0.1*tempOnda)
             if (onda % 5) == 0:
-                tempMovInimigo -= int(0.2*tempMovInimigo)
+                tempMovInimigo -= int(0.15*tempMovInimigo)
                 minInimig += 1
             geraInimigos(minInimig, maxInimig)
             contador1 = 0          
