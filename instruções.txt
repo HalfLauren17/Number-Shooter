@@ -1,0 +1,10 @@
+-Controles
+Use as teclas WASD (sem capslock) para se movimentar
+Use as setas (←↑↓→) para atirar
+
+-Mecânicas
+♥:Adciona uma vida extra 
+⚔:Aumenta o dano por um curto período de tempo
+❄:Congela o movimento dos números por um curto período de tempo
+
+*O jogo vai ficando mais difícil conforme o tempo
